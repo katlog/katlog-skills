@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        /* === 布局 === */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            gap: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section-title {
+            font-size: 12px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* === 时间线面板 === */
+        .timeline-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .timeline-title {
+            font-size: 12px;
+            color: var(--warning);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .timeline-item {
+            font-size: 10px;
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.03);
+            color: #718096;
+            border-left: 2px solid #4a5568;
+            transition: all 0.3s;
+        }
+        .timeline-item.active {
+            background: rgba(var(--primary-rgb), 0.2);
+            color: var(--primary-light);
+            border-left-color: var(--primary);
+        }
+        .timeline-item.done {
+            background: rgba(72, 187, 120, 0.15);
+            color: #68d391;
+            border-left-color: #48bb78;
+        }
+
+        /* === 控制栏 === */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.4);
+        }
+        button.step-btn {
+            background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+        }
+        button.step-btn:hover {
+            box-shadow: 0 4px 12px rgba(246, 173, 85, 0.4);
+        }
+        button.reset-btn {
+            background: linear-gradient(135deg, #718096, #4a5568);
+        }
+        .step-info {
+            font-size: 12px;
+            color: #a0aec0;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 6px;
+        }
+        .phase-display {
+            text-align: center;
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-size: 13px;
+            border-left: 3px solid var(--primary);
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* === SVG 组件样式 === */
+        .box {
+            fill: #2d3748;
+            stroke: #4a5568;
+            stroke-width: 2;
+            transition: all 0.3s;
+        }
+        .box.active {
+            fill: var(--primary);
+            stroke: var(--primary-light);
+            filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.5));
+        }
+        .box.running {
+            fill: var(--warning);
+            stroke: var(--warning-light);
+            filter: drop-shadow(0 0 8px rgba(246, 173, 85, 0.5));
+        }
+        .box.complete {
+            fill: var(--success);
+            stroke: var(--success-light);
+            filter: drop-shadow(0 0 8px rgba(72, 187, 120, 0.5));
+        }
+        .box.error {
+            fill: var(--error);
+            stroke: var(--error-light);
+            filter: drop-shadow(0 0 8px rgba(245, 101, 101, 0.5));
+        }
+        .box-label {
+            fill: #a0aec0;
+            font-size: 10px;
+            pointer-events: none;
+        }
+        .box.active .box-label,
+        .box.running .box-label,
+        .box.complete .box-label {
+            fill: #fff;
+        }
+        .small-label {
+            fill: #718096;
+            font-size: 8px;
+        }
+
+        /* === 箭头 === */
+        .arrow {
+            stroke: #4a5568;
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+        .arrow.active {
+            stroke: var(--primary);
+            marker-end: url(#arrowhead-primary);
+        }
+        .arrow.complete {
+            stroke: var(--success);
+            marker-end: url(#arrowhead-success);
+        }
+
+        /* === 数据包动画 === */
+        .packet {
+            fill: #f6e05e;
+            filter: drop-shadow(0 0 6px rgba(246, 224, 94, 0.8));
+        }
+
+        /* === 菱形（条件判断） === */
+        .diamond {
+            fill: #2d3748;
+            stroke: #4a5568;
+            stroke-width: 2;
+        }
+        .diamond.active {
+            fill: var(--warning);
+            stroke: var(--warning-light);
+            filter: drop-shadow(0 0 8px rgba(237, 137, 54, 0.5));
+        }
+        .diamond.complete {
+            fill: var(--success);
+            stroke: var(--success-light);
+        }
+
+        /* === 虚线边框（循环、并行区域） === */
+        .dashed-box {
+            fill: none;
+            stroke: var(--purple);
+            stroke-width: 2;
+            stroke-dasharray: 5,3;
+        }
+
+        /* === CSS 变量 - 默认主题（青色） === */
+        :root {
+            --primary: #00acc1;
+            --primary-light: #26c6da;
+            --primary-dark: #0097a7;
+            --primary-rgb: 0, 172, 193;
+            --success: #48bb78;
+            --success-light: #68d391;
+            --warning: #f6ad55;
+            --warning-light: #fbd38d;
+            --warning-dark: #ed8936;
+            --error: #f56565;
+            --error-light: #fc8181;
+            --purple: #9f7aea;
+            --purple-light: #b794f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{TITLE}}</h1>
+    <p class="subtitle">{{SUBTITLE}}</p>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <!-- 内容区域 -->
+            <div class="section">
+                <div class="section-title">{{SECTION_TITLE}}</div>
+                <svg width="100%" height="200" viewBox="0 0 800 200">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#4a5568"/>
+                        </marker>
+                        <marker id="arrowhead-primary" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="var(--primary)"/>
+                        </marker>
+                        <marker id="arrowhead-success" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="var(--success)"/>
+                        </marker>
+                    </defs>
+
+                    <!-- 示例：组件盒子 -->
+                    <g id="box1">
+                        <rect class="box" x="50" y="80" width="80" height="40" rx="5"/>
+                        <text class="box-label" x="90" y="105" text-anchor="middle">Component</text>
+                    </g>
+
+                    <!-- 示例：箭头 -->
+                    <path class="arrow" d="M130,100 L180,100"/>
+
+                    <!-- 示例：数据包 -->
+                    <circle class="packet" id="packet1" cx="90" cy="100" r="4" opacity="0"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- 时间线 -->
+        <div class="timeline-panel">
+            <div class="timeline-title">Execution Timeline</div>
+            <div class="timeline-item" id="t1">1. Step 1</div>
+            <div class="timeline-item" id="t2">2. Step 2</div>
+            <div class="timeline-item" id="t3">3. Step 3</div>
+        </div>
+    </div>
+
+    <div class="phase-display" id="phase">Click play to start...</div>
+
+    <div class="controls">
+        <button onclick="playAll()">&#9654; Play All</button>
+        <button class="step-btn" onclick="playStep()">&#9197; Step</button>
+        <span class="step-info">Step: <span id="step-num">0</span> / <span id="total-steps">3</span></span>
+        <button class="reset-btn" onclick="resetAnimation()">Reset</button>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 3;
+        let isPlaying = false;
+
+        // === 工具函数 ===
+        function setPhase(text) {
+            document.getElementById('phase').innerHTML = text;
+        }
+
+        function updateStepNum() {
+            document.getElementById('step-num').textContent = currentStep;
+        }
+
+        function highlightTimeline(num) {
+            document.querySelectorAll('.timeline-item').forEach((item, i) => {
+                item.classList.remove('active');
+                if (i < num) item.classList.add('done');
+            });
+            if (num > 0 && num <= totalSteps) {
+                document.getElementById('t' + num).classList.add('active');
+            }
+        }
+
+        function activateBox(id) {
+            const el = document.querySelector('#' + id + ' .box');
+            if (el) el.classList.add('active');
+        }
+
+        function completeBox(id) {
+            const el = document.querySelector('#' + id + ' .box');
+            if (el) {
+                el.classList.remove('active', 'running');
+                el.classList.add('complete');
+            }
+        }
+
+        function showPacket(id, show) {
+            document.getElementById(id).style.opacity = show ? 1 : 0;
+        }
+
+        function movePacket(id, x, y) {
+            const el = document.getElementById(id);
+            anime({
+                targets: el,
+                cx: x,
+                cy: y !== undefined ? y : el.getAttribute('cy'),
+                duration: 300,
+                easing: 'easeOutQuad'
+            });
+        }
+
+        // === 步骤定义 ===
+        const steps = [
+            {
+                action: () => {
+                    activateBox('box1');
+                    showPacket('packet1', true);
+                },
+                msg: '1. <b>Step 1</b> - Component activated',
+                timeline: 1
+            },
+            {
+                action: () => {
+                    movePacket('packet1', 150, 100);
+                },
+                msg: '2. <b>Step 2</b> - Data flowing',
+                timeline: 2
+            },
+            {
+                action: () => {
+                    completeBox('box1');
+                    showPacket('packet1', false);
+                },
+                msg: '3. <b>Step 3</b> - Complete',
+                timeline: 3
+            }
+        ];
+
+        // === 控制函数 ===
+        function playStep() {
+            if (isPlaying || currentStep >= totalSteps) return;
+            currentStep++;
+            updateStepNum();
+            const step = steps[currentStep - 1];
+            step.action();
+            setPhase(step.msg);
+            highlightTimeline(step.timeline);
+        }
+
+        async function playAll() {
+            if (isPlaying) return;
+            isPlaying = true;
+
+            while (currentStep < totalSteps) {
+                currentStep++;
+                updateStepNum();
+                const step = steps[currentStep - 1];
+                step.action();
+                setPhase(step.msg);
+                highlightTimeline(step.timeline);
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            isPlaying = false;
+        }
+
+        function resetAnimation() {
+            currentStep = 0;
+            isPlaying = false;
+            updateStepNum();
+            setPhase('Click play to start...');
+
+            // Reset all boxes
+            document.querySelectorAll('.box, .diamond').forEach(el => {
+                el.classList.remove('active', 'running', 'complete', 'error');
+            });
+
+            // Reset packets
+            document.querySelectorAll('.packet').forEach(el => {
+                el.style.opacity = 0;
+            });
+
+            // Reset timeline
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.classList.remove('active', 'done');
+            });
+        }
+
+        // Initialize
+        document.getElementById('total-steps').textContent = totalSteps;
+    </script>
+</body>
+</html>
