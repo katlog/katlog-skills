@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feishu Docx To Markdown"
+  short_description: "Export Feishu docx to local markdown with media"
+  default_prompt: "Use $feishu-docx-to-markdown to convert this Feishu docx link to local Markdown with images preserved."
